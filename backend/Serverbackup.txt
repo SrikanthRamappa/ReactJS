@@ -1,0 +1,395 @@
+//import express from 'express';
+require('dotenv').config({path:'.env'});
+
+const express = require('express');
+
+
+
+const app = express();
+const bodyParser = require('body-parser');
+
+const sqlite3 = require('sqlite3');
+const db = new sqlite3.Database('pets.db');
+
+// CSV file reader , upload in server and read the file
+// File Reader
+const formidable = require('formidable')
+var multer = require('multer');
+var cors = require('cors');
+const csvtojsonV2=require("csvtojson");
+
+
+
+//################################################################################################################
+//################################################################################################################
+// // MVC server exports
+
+// const Hapi = require('hapi');
+// const Hoek = require('hoek');
+// const Settings = require('./settings');
+
+// // Import required routes
+// const Routes = require('./lib/routes');
+
+// const server = new Hapi.Server({  
+//   host: 'localhost',
+//   port: 12059
+// })
+// //server.connection();
+
+// server.route(Routes);
+
+// server.start((err) => {
+//   Hoek.assert(!err, err);
+
+//   console.log(`Server running at: ${server.info.uri}`);
+// });
+
+//##############################################################################################################
+//##############################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ##########################################################################################################
+
+function provideAnswer(req) {
+
+ let question = req.params.question;
+  if (question === '1') {
+    return {answer:42}
+  }
+}
+app.get('/react-express-template/master/api/:question', (req, res) => res.send(provideAnswer(req)));
+// ##########################################################################################################
+
+
+
+// #1 To get all the user details in the table
+app.get('/react-express-template/master/api/user/all', (req, res) => {    
+            
+      // to get name of value from table user_to_pets
+         db.all('SELECT name FROM user_to_pets',(err,rows) => {
+         console.log(rows);
+         const allUsernames = rows.map(e => e.name);
+         console.log(allUsernames);
+         res.send(allUsernames);
+        })
+      
+});
+
+// #############################################################################################################
+// #2 To get reqested name, user details from the table
+//##############################################################################################################
+app.get('/react-express-template/master/api/user/:userid', (req, res) => {
+    
+    const namelkup  = req.params.userid;   // matches the userid
+    console.log(namelkup);
+  // to get name of value from table user_to_pets
+  db.all('SELECT * FROM user_to_pets WHERE name=$name',
+ 
+    (
+        name = req.params.userid  
+    ),
+  // callback Function to run when the  query finishes (err,rows)
+    (err,rows) => {
+    console.log(rows);
+    if (rows.length > 0)
+      {
+        res.send(rows)    // to send only one row res.send(rows[0]), for all rows give res.send(rows)
+      }
+      else{
+        res.send([]);
+      }
+    }
+  );
+
+});
+
+//##################################################  POST  ######################################################
+// AddDetails.js / PostForm.js : POST request  is for posting SELECT DATA FOR EDIT  to the server.
+//##################################################  POST  ######################################################
+// const bodyParser = require('body-parser');
+app.use(express.json())
+
+app.post('/react-express-template/master/api/post',(req,res) => {
+  console.log("handling incoming request");
+  console.log(req.body);
+  console.log(req.body.name);
+  // const namelkup  = req.body.name; 
+  // const Joblkup  = req.body.job; 
+  // const petlkup  = req.body.pet; 
+
+  db.run( 'INSERT INTO user_to_pets VALUES ($name,$job,$pet)',
+  {
+    $name: req.body.name,
+    $job: req.body.job,
+    $pet: req.body.pet
+  }, (err) => {
+
+    if(err) {
+       res.send({message:'Error in app.POST(/user)'});
+       console.log(err)
+    }
+    else {
+       res.send({message:'Succesfully Inserted the Record (run app.POST(/user))'});
+       console.log(`A row has been inserted with rowid`);
+    }
+  }
+
+  );
+  //res.send("Hitting the backend");  // do not send Res.semd 2 times.
+  console.log("Hitting the backend");
+});
+
+
+// #############################################################################################################
+// #4 DisplayBackendData.JS  : To get Display Backend Delete, user details from the table
+//##############################################################################################################
+app.get('/react-express-template/master/api/user/fetch/All', (req, res) => {
+    
+// to get name of value from table user_to_pets
+db.all('SELECT rowid, name, job, pet FROM user_to_pets',
+
+// callback Function to run when the  query finishes (err,rows)
+  (err,rows) => {
+  console.log(rows);
+  console.log(" from server.js");
+  if (rows.length > 0)
+    {
+      res.send(rows)    // to send only one row res.send(rows[0]), for all rows give res.send(rows)
+      console.log("send rows from server.js");
+    }
+    else{
+      res.send(["Error"]);
+      console.log("send Errors from server.js");
+    }
+  }
+);
+
+});
+
+// #############################################################################################################
+// #5 EditDetails.js  :To get Display of the Edit button clicked User Details based on the row, user details from
+//     the table
+//##############################################################################################################
+app.get('/react-express-template/master/api/user/edit/:rowid', (req, res) => {
+ // app.get('/react-express-template/master/api/user/:userid', (req, res) => {
+    
+    const rowidlkup  = req.params.rowid ;   // matches the rowid
+    console.log(rowidlkup);
+  // to get name of value from table user_to_pets
+  db.all('SELECT rowid, name, job, pet FROM user_to_pets WHERE rowid=$rowid',
+    (
+    rowid = req.params.rowid  
+    ),
+  // callback Function to run when the  query finishes (err,rows)
+    (err,rows) => {
+    console.log(rows);
+    if (rows.length > 0)
+      {
+        res.send(rows[0])    // to send only one row res.send(rows[0]), for all rows give res.send(rows)
+      }
+      else{
+        res.send([]);
+      }
+    }
+  );
+
+});
+
+//##################################################  POST  ######################################################
+// #6 EditDetail.js : POST request  is for posting  update data  of the User.
+//##################################################  POST  ######################################################
+//const bodyParser = require('body-parser');
+app.use(express.json())
+
+app.post('/react-express-template/master/api/user/update/',(req,res) => {
+  console.log("handling incoming request");
+  console.log(req.body);
+  console.log(req.body.name);
+  // const namelkup  = req.body.name; 
+  // const Joblkup  = req.body.job; 
+  // const petlkup  = req.body.pet; 
+  // const rowidrowlkup  = req.body.rowid; 
+
+  //db.run( 'INSERT INTO user_to_pets VALUES ($name,$job,$pet)',
+  db.run( 'UPDATE user_to_pets SET name = $name, job =$job, pet =$pet WHERE rowid = $rowid',
+  {
+    $name: req.body.name,
+    $job: req.body.job,
+    $pet: req.body.pet,
+    $rowid: req.body.rowid
+
+  }, (err) => {
+
+    if(err) {
+       res.send({message:'Error in app.POST(/api/user/update/)'});
+       console.log(err)
+    }
+    else {
+       res.send({message:'Succesfully updated the Record (run app.POST(/user))'});
+       console.log(`A row has been UPDATED W.R.T rowid`);
+    }
+  }
+
+  );
+  //res.send("Hitting the backend");  // do not send Res.semd 2 times.
+  console.log("Hitting the update SQLbackend");
+});
+
+
+
+// #############################################################################################################
+// #7 TableRow.js (for Delete operation) : To DELETE the User Details, from the table using Row id
+//##############################################################################################################
+app.get('/react-express-template/master/api/user/delete/:rowid', (req, res) => {
+  // app.get('/react-express-template/master/api/user/:userid', (req, res) => {
+     
+     const rowidlkup  = req.params.rowid ;   // matches the rowid
+     console.log(rowidlkup);
+   // to get name of value from table user_to_pets
+   db.all('DELETE FROM user_to_pets WHERE rowid=$rowid',
+     (
+     rowid = req.params.rowid  
+     ),
+   // callback Function to run when the  query finishes (err)
+   (err) => {
+
+    if(err) {
+       res.send('Error in app.get(/api/user/delete/)');
+       console.log(err)
+    }
+    else {
+       res.send({message:'Succesfully Deleted the Record (run app.get(/user/delete))'});
+       console.log(`A row has been Deleted W.R.T rowid`);
+    }
+  }
+   );
+ 
+ });
+
+// #############################################################################################################
+// #8 UploadCsv.js    : To UPLOAD THE CSV FILE in the server location folder:  "backend/Uploads"
+// #############################################################################################################
+// https://programmingwithmosh.com/javascript/react-file-upload-proper-server-side-nodejs-easy/
+//
+// #############################################################################################################
+
+app.use(express.json()) 
+app.use(cors())
+
+// Create a multer instance and set the destination folder. The code below uses /public folder. 
+// You can also assign a new file name upon upload. The code below uses ‘originalfilename’as the file name.
+// 
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+  cb(null, 'Uploads')
+},
+filename: function (req, file, cb) {
+  //cb(null, Date.now() + '-' +file.originalname )    // this will create the file in name "1562336824803-DACI.csv"
+  cb(null, file.originalname )
+}
+})
+
+var upload = multer({ storage: storage }).single('file')
+
+
+
+app.post('/react-express-template/master/api/post/Upload',(req,res) => {
+  console.log("handling incoming request to load the csv file in the folder uploads");
+  //console.log(req);
+
+          // the below Upload will load the csv file into 
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+        return res.status(500).json(err)
+    } else if (err) {
+        return res.status(500).json(err)
+    }
+   //return res.status(200).send(req.file)
+
+   console.log(" upload usccesssful")
+   // .then parser file  or async wait  - try this
+})
+
+//  we need to wait. here either upload will happend or read will happen - else double clik the Upload button
+
+console.log(" have the file path")
+const csvFilePath='C:/Users/sramapp/REACTJS/React-express-sql/backend/Uploads/DACI.csv'
+const csv=require('csvtojson')
+ csv()
+ .fromFile(csvFilePath)
+ .then((jsonObj)=>{
+     console.log(jsonObj);
+
+   return res.status(200).send(req.file)
+   })
+  //  const jsonArray=  csv().fromFile(csvFilePath);
+  //  console.log(jsonArray)
+  //  return res.status(200).send(req.file)
+});
+
+//###################################################################################################################
+// #9 FileReader.js   : Read the CSV data in a array called "data", get the "data" from the "data Array"
+//###################################################################################################################
+
+// const bodyParser = require('body-parser');
+app.use(express.json())
+
+app.post('/react-express-template/master/api/post/FileReader',(req,res) => {
+  console.log("handling incoming fileader request");
+  // console.log(req);
+  //console.log(req.body[1]);
+  console.log(req.body);
+ 
+  const count = req.body.length;
+  console.log(count);
+
+   // for loop count so given i is less than count-1 ,
+   
+   for (i=0 ; i < count-1; i++)
+  {
+        var namelkup  = req.body[i].name; 
+        var Joblkup  = req.body[i].job; 
+        var petlkup  = req.body[i].pet; 
+
+        db.run( 'INSERT INTO user_to_pets VALUES ($name,$job,$pet)',
+        {
+          $name: namelkup,
+          $job: Joblkup,
+          $pet: petlkup
+        }, (err) => {
+
+          if(err) {
+            res.send({message:'Error in app.POST(/user)'});
+            console.log(err)
+          }
+          // else {
+          //    res.send({message:'Succesfully all record Inserted (run app.POST(/user))'});
+          //    console.log(`A row has been inserted with rowid`);
+          // }
+        }
+
+        );
+}
+  //res.send("Hitting the backend");  // do not send Res.semd 2 times.
+  console.log("Hitting the backend");
+  res.send({message:'Succesfully all record Inserted (run app.POST(/user))'});
+});
+
+
+// ################################################################################################################
+ app.listen(process.env.PORT || 12059);
+console.log("Backend listening at port : 12059");
+
